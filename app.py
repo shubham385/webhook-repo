@@ -11,21 +11,21 @@ collection = db['actions']
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    # Get the JSON payload from GitHub webhook
-    payload = request.json
-    event_type = request.headers.get('X-GitHub-Event')
-    author = payload['sender']['login']
-    timestamp = datetime.utcnow()
+    payload = request.json  # Get the JSON payload from GitHub webhook
+    event_type = request.headers.get('X-GitHub-Event')  # Get the event type
+    author = payload['sender']['login']  # Get the author of the action
+    timestamp = datetime.utcnow()  # Set the current timestamp
 
     # Handle different types of events
     if event_type == 'push':
-        to_branch = payload['ref'].split('/')[-1]
+        to_branch = payload['ref'].split('/')[-1]  # Get the branch
         action_data = {
             'author': author,
             'to_branch': to_branch,
             'timestamp': timestamp,
             'action_type': 'push'
         }
+
     elif event_type == 'pull_request':
         from_branch = payload['pull_request']['head']['ref']
         to_branch = payload['pull_request']['base']['ref']
@@ -36,20 +36,10 @@ def webhook():
             'timestamp': timestamp,
             'action_type': 'pull_request'
         }
-    elif event_type == 'pull_request' and payload['action'] == 'closed' and payload['pull_request']['merged']:
-        from_branch = payload['pull_request']['head']['ref']
-        to_branch = payload['pull_request']['base']['ref']
-        action_data = {
-            'author': author,
-            'from_branch': from_branch,
-            'to_branch': to_branch,
-            'timestamp': timestamp,
-            'action_type': 'merge'
-        }
 
-    # Save the action data to MongoDB
+    # Save the action to MongoDB
     collection.insert_one(action_data)
-
+    
     return jsonify({'message': 'Action recorded'}), 200
 
 if __name__ == '__main__':
